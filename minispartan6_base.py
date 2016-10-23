@@ -91,6 +91,7 @@ class _CRG(Module):
                                   o_Q=platform.request("sdram_clock"))
 
         self.specials += Instance("BUFG", i_I=platform.request("clk50"), o_O=self.cd_base50.clk)
+        platform.add_period_constraint(self.cd_base50.clk, 20)
 
 
 # Patch the CPU interface to map firmware_ram into main_ram region.
@@ -140,6 +141,8 @@ class BaseSoC(SoCSDRAM):
         self.register_sdram(self.ddrphy,
                             sdram_module.geom_settings,
                             sdram_module.timing_settings)
+
+        self.platform.add_period_constraint(self.crg.cd_sys.clk, 1/clk_freq*1e9)
 
 
 
