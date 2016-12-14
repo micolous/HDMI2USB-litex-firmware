@@ -45,10 +45,12 @@ def main():
     builder_args(parser)
     soc_sdram_args(parser)
     parser.add_argument("--nocompile-gateware", action="store_true")
+    parser.add_argument("--iprange", default="192.168.100")
     args = parser.parse_args()
 
     platform = opsis_platform.Platform()
     soc = HDMI2USBSoC(platform, **soc_sdram_argdict(args))
+    soc.configure_iprange(args.iprange)
     builddir = "build/opsis_hdmi2usb/"
     testdir = "{}/test".format(builddir)
 
