@@ -4,6 +4,8 @@ from opsis_base import *
 from litevideo.input import HDMIIn
 from litevideo.output import VideoOut
 
+from litescope import LiteScopeAnalyzer
+
 base_cls = MiniSoC
 
 
@@ -15,6 +17,7 @@ class VideoMixerSoC(base_cls):
         "hdmi_in0_edid_mem",
         "hdmi_in1",
         "hdmi_in1_edid_mem",
+        "analyzer",
     )
     csr_map_update(base_cls.csr_map, csr_peripherals)
 
@@ -68,6 +71,18 @@ NET "{pix1_clk}" TNM_NET = "GRPpix1_clk";
             self.hdmi_out0.driver.clocking.cd_pix.clk,
             self.hdmi_out1.driver.clocking.cd_pix.clk)
 
+        analyzer_signals = [
+            self.hdmi_in0.chansync.valid_i,
+            self.hdmi_in0.chansync.data_in0,
+            self.hdmi_in0.chansync.data_in1,
+            self.hdmi_in0.chansync.data_in2,
+        ]
+        self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="hdmi_in0_pix")
+
+    def do_exit(self, vns, filename="test/analyzer.csv"):
+        self.analyzer.export_csv(vns, filename)
+
+
 
 def main():
     parser = argparse.ArgumentParser(description="Opsis LiteX SoC")
@@ -91,6 +106,8 @@ def main():
     if not os.path.exists(testdir):
         os.makedirs(testdir) # FIXME: Remove when builder does this.
     vns = builder.build()
+    soc.do_exit(vns, "{}/analyzer.csv".format(testdir))
+
 
 if __name__ == "__main__":
     main()

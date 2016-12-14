@@ -51,8 +51,8 @@ class HDMI2USBSoC(base_cls):
         ]
         self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 1024)
 
-    def do_exit(self, vns):
-        self.analyzer.export_csv(vns, "test/analyzer.csv")
+    def do_exit(self, vns, filename="test/analyzer.csv"):
+        self.analyzer.export_csv(vns, filename)
 
 
 def main():
@@ -77,7 +77,7 @@ def main():
     if not os.path.exists(testdir):
         os.makedirs(testdir) # FIXME: Remove when builder does this.
     vns = builder.build()
-    soc.do_exit(vns)
+    soc.do_exit(vns, "{}/analyzer.csv".format(testdir))
 
 if __name__ == "__main__":
     main()
