@@ -78,12 +78,16 @@ def main():
 
     platform = opsis_platform.Platform()
     soc = VideoMixerSoC(platform, **soc_sdram_argdict(args))
-    builder = Builder(soc, output_dir="build/opsis_video/",
+    builddir = "build/opsis_video/"
+    testdir = "{}/test".format(builddir)
+
+    builder = Builder(soc, output_dir=builddir,
                       compile_gateware=not args.nocompile_gateware,
-                      csr_csv="build/opsis_video/test/csr.csv")
+                      csr_csv="{}/csr.csv".format(testdir))
     builder.add_software_package("libuip", "{}/firmware/libuip".format(os.getcwd()))
     builder.add_software_package("firmware", "{}/firmware".format(os.getcwd()))
-    os.makedirs("build/opsis_video/test") # FIXME: Remove when builder does this.
+    if not os.path.exists(testdir):
+        os.makedirs(testdir) # FIXME: Remove when builder does this.
     vns = builder.build()
 
 if __name__ == "__main__":

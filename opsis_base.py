@@ -335,19 +335,21 @@ def main():
 
     platform = opsis_platform.Platform()
     if not args.with_ethernet:
-        builddir = "opsis_base/"
+        builddir = "build/opsis_base/"
         soc = BaseSoC(platform, **soc_sdram_argdict(args))
     else:
-        builddir = "opsis_minisoc/"
+        builddir = "build/opsis_minisoc/"
         soc = MiniSoC(platform, **soc_sdram_argdict(args))
         soc.configure_iprange(args.iprange)
+    testdir = "{}/test".format(builddir)
 
-    builder = Builder(soc, output_dir="build/{}".format(builddir),
+    builder = Builder(soc, output_dir=builddir,
                       compile_gateware=not args.nocompile_gateware,
-                      csr_csv="build/{}/test/csr.csv".format(builddir))
+                      csr_csv="{}/csr.csv".format(testdir))
     builder.add_software_package("libuip", "{}/firmware/libuip".format(os.getcwd()))
     builder.add_software_package("firmware", "{}/firmware".format(os.getcwd()))
-    os.makedirs("build/{}/test".format(builddir)) # FIXME: Remove when builder does this.
+    if not os.path.exists(testdir):
+        os.makedirs(testdir) # FIXME: Remove when builder does this.
     vns = builder.build()
 
 if __name__ == "__main__":
