@@ -9,6 +9,7 @@
 
 #include "pattern.h"
 #include "processor.h"
+#include "version_data.h"
 
 #define PATTERN_FRAMEBUFFER_BASE 0x02000000 + 0x100000
 
@@ -131,25 +132,28 @@ static int inc_color(int color) {
 	return color%8;
 }
 
-static void pattern_draw_text(int x, int y, char *ptr) {
+static void pattern_draw_text_color(int x, int y, char *ptr, long background_color, long text_color) {
 	int i, j, k;
 	int adr;
 	volatile unsigned int *framebuffer = (unsigned int *)(MAIN_RAM_BASE + PATTERN_FRAMEBUFFER_BASE);
 	for(i=0; ptr[i] != '\0'; i++) {
-		for(j=0; j<7; j++) {
-			for(k=0; k<5; k++) {
-				adr = 5*(x + i) + k + (2*8*y + 2*j)*processor_h_active/2;
-				if((font5x7[5*(ptr[i] - ' ') + k] >> j) & 0x1) {
-					framebuffer[adr + 0*processor_h_active/2] = YCBCR422_BLACK;
-					framebuffer[adr + 1*processor_h_active/2] = YCBCR422_BLACK;
-				}
-				else {
-					framebuffer[adr + 0*processor_h_active/2] = YCBCR422_WHITE;
-					framebuffer[adr + 1*processor_h_active/2] = YCBCR422_WHITE;
+		for(j=0; j<8; j++) {
+			for(k=0; k<6; k++) {
+				adr = 6*(x + i) + k + (2*9*y + 2*j)*processor_h_active/2;
+				if (k < 5 && j < 7 && ((font5x7[5*(ptr[i] - ' ') + k] >> j) & 0x1)) {
+					framebuffer[adr + 0*processor_h_active/2] = text_color;
+					framebuffer[adr + 1*processor_h_active/2] = text_color;
+				} else {
+					framebuffer[adr + 0*processor_h_active/2] = background_color;
+					framebuffer[adr + 1*processor_h_active/2] = background_color;
 				}
 			}
 		}
 	}
+}
+
+static void pattern_draw_text(int x, int y, char *ptr) {
+	pattern_draw_text_color(x, y, ptr, YCBCR422_WHITE, YCBCR422_BLACK);
 }
 
 void pattern_fill_framebuffer(int h_active, int m_active)
@@ -176,9 +180,21 @@ void pattern_fill_framebuffer(int h_active, int m_active)
 				framebuffer[i] = 0x801080ff;
 		}
 	}
-	pattern_draw_text(1, 1, "HDMI2USB");
-	pattern_draw_text(1, 3, "timvideos.us");
-	pattern_draw_text(1, 4, "enjoy-digital.fr");
+	// Show version information
+	pattern_draw_text(1, 1, "Hi! I am HDMI2USB ");
+	pattern_draw_text(19, 1, (char*)git_describe);
+	pattern_draw_text(1, 2, "code.timvideos.us / enjoy-digital.fr");
+	pattern_draw_text_color(6, 2, "tim", YCBCR422_WHITE, YCBCR422_RED);
+	pattern_draw_text_color(9, 2, "videos", YCBCR422_WHITE, YCBCR422_BLUE);
+	pattern_draw_text_color(27, 2, "digital", YCBCR422_WHITE, YCBCR422_CYAN);
+	pattern_draw_text(1, 3, "Running on ");
+	pattern_draw_text(12, 3, (char*)board);
+	pattern_draw_text(1, 4, "Built: "__DATE__" "__TIME__);
+
+#ifndef HIDE_ADVERT
+	pattern_draw_text_color(1, 7, "Want to hack on FOSS video capture systems?", YCBCR422_BLUE, YCBCR422_WHITE);
+	pattern_draw_text_color(1, 8, "Get in touch with us! #timvideos on Freenode IRC", YCBCR422_RED, YCBCR422_WHITE);
+#endif
 	flush_l2_cache();
 }
 
@@ -189,11 +205,11 @@ void pattern_service(void)
 	char buffer[16];
 
 	if(elapsed(&last_event, SYSTEM_CLOCK_FREQUENCY)) {
-		sprintf(buffer, "uptime %02d:%02d:%02d",
-			(seconds/3600)%24,
+		sprintf(buffer, "Uptime: %02dh %02dm %02ds",
+			(seconds/3600),
 			(seconds/60)%60,
 			seconds%60);
-		pattern_draw_text(1, 6, buffer);
+		pattern_draw_text(1, 5, buffer);
 		seconds++;
 	}
 	flush_l2_cache();
